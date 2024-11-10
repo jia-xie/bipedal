@@ -9,6 +9,7 @@
 
 #include "bsp_uart.h"
 #include <string.h>
+#include "remote.h"
 
 static void imu_cmd_spi_dma(void);
 
@@ -110,7 +111,7 @@ void IMU_Task_Process(IMU_t *imu)
         accel_temp_update_flag &= ~(1 << IMU_UPDATE_SHFITS);
         BMI088_temperature_read_over(accel_temp_dma_rx_buf + BMI088_ACCEL_RX_BUF_DATA_OFFSET, &g_imu.bmi088_raw.temp);
     }
-        static uint8_t tx_buffer[1 + 6 * sizeof(float) + 8]; // 1 byte for header + 24 bytes for float data + 8 bytes for remote_buffer = 33 bytes
+    static uint8_t tx_buffer[1 + 6 * sizeof(float) + 8]; // 1 byte for header + 24 bytes for float data + 8 bytes for remote_buffer = 33 bytes
 
     // Set header byte
     tx_buffer[0] = 0xAA;
@@ -122,11 +123,15 @@ void IMU_Task_Process(IMU_t *imu)
     memcpy(&tx_buffer[1 + 3 * sizeof(float)], &g_imu.bmi088_raw.accel[0], sizeof(float));
     memcpy(&tx_buffer[1 + 4 * sizeof(float)], &g_imu.bmi088_raw.accel[1], sizeof(float));
     memcpy(&tx_buffer[1 + 5 * sizeof(float)], &g_imu.bmi088_raw.accel[2], sizeof(float));
-	
+	tx_buffer[32] = 0b00000000;
 	extern uint8_t remote_buffer[18];
     // Copy the 18 bytes from remote_buffer to the tx_buffer after IMU data
     memcpy(&tx_buffer[1 + 6 * sizeof(float)], remote_buffer, 6);
     memcpy(&tx_buffer[1 + 6 * sizeof(float) + 6], remote_buffer + 16, 2);
+    if (g_remote.online_flag)
+    {
+        tx_buffer[32] |= 0b00010000;
+    }
     HAL_UART_Transmit_DMA(&huart6, tx_buffer, sizeof(tx_buffer));
     #ifdef WITH_MAGNETOMETER
     // fusion using magnetometer
