@@ -34,7 +34,7 @@ void Robot_Init()
 {
     g_robot_state.state = STARTING_UP;
 
-    Buzzer_Init(&BUZZER_TIMER_NUM, BUZZER_TIMER_CHANNEL);
+    Buzzer_Init();
     Melody_t system_init_melody = {
         .notes = SYSTEM_INITIALIZING,
         .loudness = 0.5f,
